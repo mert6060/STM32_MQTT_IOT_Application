@@ -1,1 +1,1 @@
-This project is an IoT application that reads temperature data from the MPU6050 sensor using an STM32 microcontroller and transmits this data to Node-RED via TCP/IP communication with the ESP8266 WiFi module.
+This project is an IoT application that reads temperature data from the MPU6050 sensor using an STM32 microcontroller and transmits this data to Node-RED via MQTT communication with the ESP8266 WiFi module.
