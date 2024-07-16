@@ -1,8 +1,7 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
+  * @file    main.c
+  * @brief   Main program body
   ******************************************************************************
   * @attention
   *
@@ -15,7 +14,7 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
+
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
@@ -24,7 +23,6 @@
 #include "esp8266.h"
 #include "stm_mqtt.h"
 #include <string.h>
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,15 +35,14 @@
 
 /* USER CODE END PD */
 
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+
+char received_topic[128];       /**< Topic of the received MQTT message */
+char received_payload[128];     /**< Payload of the received MQTT message */
+const char *subscribed_topic = "topic2"; /**< MQTT topic to subscribe */
 
 /* USER CODE END PV */
 
@@ -53,15 +50,14 @@ UART_HandleTypeDef huart1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-char received_topic[128];
-char received_payload[128];
-const char *subscribed_topic = "topic2";
+
 /* USER CODE END 0 */
 
 /**
@@ -100,60 +96,68 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  bool b_mqtt_connected = false;
-  bool b_mqtt_subscribed = false;
+  bool b_mqtt_connected = false;   /**< Flag indicating MQTT connection status */
+  bool b_mqtt_subscribed = false;  /**< Flag indicating MQTT subscription status */
+
+  // Attempt to connect to Wi-Fi network and MQTT broker
   if (connect_to_network("DESKTOP-IBPU5MV 1627", "75S10m(1"))
   {
-	  if (stm_mqtt_connect("192.168.137.1", 1883, "client_01", 60))
-	  {
-		  b_mqtt_connected = true;
-		  if (stm_mqtt_subscribe_qos0(subscribed_topic))
-		  {
-			  b_mqtt_subscribed = true;
-		  }
-	  }
+    if (stm_mqtt_connect("192.168.137.1", 1883, "client_01", 60))
+    {
+      b_mqtt_connected = true;
+
+      // Subscribe to MQTT topic
+      if (stm_mqtt_subscribe_qos0(subscribed_topic))
+      {
+        b_mqtt_subscribed = true;
+      }
+    }
   }
-  int counter = 0;
+
+  int counter = 0;  /**< Counter variable for periodic tasks */
+  
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  // float temperature = Temp_Read();
-	  // char temperature_string[8] = { 0 };
-	  // sprintf(temperature_string, "%.2lf", temperature);
-	if (b_mqtt_connected)
-	{
-		if (b_mqtt_subscribed)
-		{
-			memset(received_topic, 0, sizeof(received_topic));
-			memset(received_payload, 0, sizeof(received_payload));
-			if (stm_mqtt_parse_received_buffer(received_topic, received_payload))
-			{
-				if (strcmp(received_topic, subscribed_topic) == 0)
-				{
-					if (strcmp(received_payload, "LED_ON") == 0)
-					{
-						HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-					}
-					else if (strcmp(received_payload, "LED_OFF") == 0)
-					{
-						HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-					}
-				}
-			}
-		}
-		counter++;
-		if (counter > 10000)
-		{
-			counter = 0;
-			stm_mqtt_publish_qos0("topic1", "Hello from stm");
-			// stm_mqtt_publish_qos0("temperature_topic", temperature_string);
-		}
+    if (b_mqtt_connected)
+    {
+      if (b_mqtt_subscribed)
+      {
+        // Clear received buffers
+        memset(received_topic, 0, sizeof(received_topic));
+        memset(received_payload, 0, sizeof(received_payload));
 
-	}
+        // Parse received MQTT message
+        if (stm_mqtt_parse_received_buffer(received_topic, received_payload))
+        {
+          // Check if received topic matches subscribed topic
+          if (strcmp(received_topic, subscribed_topic) == 0)
+          {
+            // Control LED based on received payload
+            if (strcmp(received_payload, "LED_ON") == 0)
+            {
+              HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+            }
+            else if (strcmp(received_payload, "LED_OFF") == 0)
+            {
+              HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+            }
+          }
+        }
+      }
+
+      // Publish MQTT message periodically
+      if (HAL_GetTick() > counter + 999)
+      {
+        counter = HAL_GetTick();
+        stm_mqtt_publish_qos0("topic1", "Hello from stm");
+      }
+    }
+    /* USER CODE END 3 */
   }
-  /* USER CODE END 3 */
+  /* USER CODE END WHILE */
 }
 
 /**
@@ -212,7 +216,6 @@ void SystemClock_Config(void)
   */
 static void MX_USART1_UART_Init(void)
 {
-
   /* USER CODE BEGIN USART1_Init 0 */
 
   /* USER CODE END USART1_Init 0 */
@@ -248,8 +251,9 @@ static void MX_USART1_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN 0 */
+
+  /* USER CODE END 0 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
@@ -265,8 +269,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
 }
 
 /* USER CODE BEGIN 4 */
